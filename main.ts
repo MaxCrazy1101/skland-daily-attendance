@@ -152,7 +152,7 @@ async function doAttendanceForAccount(token: string) {
 
                 // 检票功能
                 console.log('开始检票');
-                const gameIds = [1, 2, 3, 4, 100];
+                const gameIds = [1, 2, 3, 4, 100]
                 for (const game_id in gameIds) {
                     const data = await fetch(
                         SKLAND_ATTENDANCE_URL,
@@ -166,7 +166,7 @@ async function doAttendanceForAccount(token: string) {
                         message_content += `游戏板块 ${game_id} 检票成功\n`;
                         console.log(`游戏板块 ${game_id} 检票成功\n`);
                     } else {
-                        console.log(`游戏板块 ${game_id} 检票失败\n`);
+                        console.log(`游戏板块 ${game_id} 检票失败`, data);
                         message_content += `游戏板块 ${game_id} 检票失败\n`;
                         is_success = false;
                     }
