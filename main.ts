@@ -6,7 +6,8 @@ import { serverChan } from "./message_send.ts";
 const SKLAND_AUTH_URL = 'https://as.hypergryph.com/user/oauth2/v2/grant',
     CRED_CODE_URL = "https://zonai.skland.com/api/v1/user/auth/generate_cred_by_code",
     BINDING_URL = "https://zonai.skland.com/api/v1/game/player/binding", // 绑定角色url
-    SKLAND_ATTENDANCE_URL = "https://zonai.skland.com/api/v1/game/attendance"// 签到url
+    SKLAND_ATTENDANCE_URL = "https://zonai.skland.com/api/v1/game/attendance",// 签到url
+    SKLAND_CHECKIN_URL = "https://zonai.skland.com/api/v1/score/checkin"// 检票url
 
 interface SklandResponse<T> {
     code: number,
@@ -117,6 +118,8 @@ async function doAttendanceForAccount(token: string) {
     Promise.all(
         list.map(i => i.bindingList).flat()
             .map(async character => {
+                let message_content = ''
+                let is_success = true
 
                 console.log('开始签到' + character.nickName);
                 const url = new URL(SKLAND_ATTENDANCE_URL)
@@ -138,11 +141,42 @@ async function doAttendanceForAccount(token: string) {
                 if (data.code === 0 && data.message === 'OK') {
                     msg = `${character.nickName}签到成功, 获得了${data.data.awards.map(a => a.resource.name + '' + a.count + '个').join(',')}`
                     console.log(msg);
-                    await serverChan(serverChan_sendkey, "Skland签到成功", msg);
+                    message_content += msg + '\n';
+                    // await serverChan(serverChan_sendkey, "Skland签到成功", msg);
                 } else {
                     msg = `${character.nickName}签到失败, 错误消息: ${data.message} raw response json: ${JSON.stringify(data)}`
                     console.error(msg)
-                    await serverChan(serverChan_sendkey, "Skland签到失败", msg);
+                    message_content += msg + '\n';
+                    is_success = false;
+                }
+
+                // 检票功能
+                console.log('开始检票');
+                const gameIds = [1, 2, 3, 4, 100];
+                for (const game_id in gameIds) {
+                    const data = await fetch(
+                        SKLAND_ATTENDANCE_URL,
+                        {
+                            method: "POST",
+                            headers: Object.assign(headers, { sign, cred, 'Content-Type': "application/json;charset=utf-8" }, command_header),
+                            body: JSON.stringify({ "gameId": game_id })
+                        }
+                    ).then(res => res.json())
+                    if (data["code"] === 0 && data["message"] === "OK") {
+                        message_content += `游戏板块 ${game_id} 检票成功\n`;
+                        console.log(`游戏板块 ${game_id} 检票成功\n`);
+                    } else {
+                        console.log(`游戏板块 ${game_id} 检票失败\n`);
+                        message_content += `游戏板块 ${game_id} 检票失败\n`;
+                        is_success = false;
+                    }
+                }
+                // 推送消息
+                if (is_success) {
+                    await serverChan(serverChan_sendkey, "Skland签到成功", message_content);
+                }
+                else {
+                    await serverChan(serverChan_sendkey, "Skland签到失败", message_content);
                     // quit ci with error
                     process.exit(1)
                 }
