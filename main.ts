@@ -155,6 +155,7 @@ async function doAttendanceForAccount(token: string) {
                 const gameIds = [1, 2, 3, 4, 100]
                 // for (const game_id in gameIds) {
                 gameIds.forEach(async (game_id) => {
+                    const [sign, headers] = generateSignature(signToken, url, body)
                     const data = await fetch(
                         SKLAND_ATTENDANCE_URL,
                         {
